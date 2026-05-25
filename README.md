@@ -12,8 +12,7 @@ The Tuya Environmental Collector Agent is a cloud-native service designed to pol
   - **Devices**: Register, inspect, and delete sensor nodes.
   - **Settings**: Adjust Tuya API keys, InfluxDB endpoint credentials, and logger verbosity levels.
   - **Diagnostics & Help**: Readme guide and a real-time console streaming container logs on demand.
-- **System Theme Integration**: The configurator style automatically aligns with the host operating system's light or dark mode.
-- **Multi-Architecture Support**: Ready for deployment on `amd64` and `arm64/aarch64` systems.
+- **Multi-Architecture Support**: Building image for amd64 and aarch64 with Github Actions
 
 ## Parsing Specification
 
@@ -51,7 +50,7 @@ The agent differentiates data decoding formats based on the `product_name` field
 
 ## Containerization
 
-The repository includes a `Dockerfile` set up to run Gunicorn as the WSGI server. The latest builds are automatically generated and published via GitHub Actions workflows.
+The repository includes a `Dockerfile` so you can build your own image to run it in Docker. The latest builds are automatically generated and published via GitHub Actions workflows.
 
 To build the image locally:
 ```bash
