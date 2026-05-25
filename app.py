@@ -405,6 +405,20 @@ def scheduler_worker():
 # -------------------------------------------------------------
 app = Flask(__name__)
 
+# Bootstrap: run regardless of whether app is started via __main__ or
+# imported by a WSGI server (Gunicorn). This ensures the DB tables always
+# exist before any request is handled, and the collection worker is running.
+logger.info("=" * 60)
+logger.info(" Tuya Agent initializing")
+logger.info(f" Version  : {BUILD_VERSION}")
+logger.info(f" Database : {DB_PATH}")
+logger.info("=" * 60)
+init_db()
+apply_log_level_from_db()
+_scheduler_thread = threading.Thread(target=scheduler_worker, daemon=True, name="scheduler")
+_scheduler_thread.start()
+logger.info("Background scheduler thread started.")
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -518,25 +532,13 @@ def get_logs():
     })
 
 # -------------------------------------------------------------
-# Main Entry Point
+# Main Entry Point (local dev only — Gunicorn skips this)
 # -------------------------------------------------------------
 def main():
-    logger.info("=" * 60)
-    logger.info(f" Tuya Agent starting up")
-    logger.info(f" Version  : {BUILD_VERSION}")
-    logger.info(f" Database : {DB_PATH}")
-    logger.info("=" * 60)
-
-    init_db()
-    apply_log_level_from_db()
-
-    # Launch background collection worker
-    t = threading.Thread(target=scheduler_worker, daemon=True, name="scheduler")
-    t.start()
-    logger.info("Background scheduler thread started.")
-
+    # DB init and scheduler already started at module load above.
+    # This block only runs when executing: python app.py
     try:
-        logger.info("Starting Gunicorn/Flask on 0.0.0.0:5000")
+        logger.info("Starting Flask development server on 0.0.0.0:5000")
         app.run(host="0.0.0.0", port=5000)
     finally:
         logger.info("Shutdown signal received. Stopping scheduler...")
