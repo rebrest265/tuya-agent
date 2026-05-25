@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
+
   <style>
     :root {
       /* Neutral System Light Theme */
@@ -25,7 +26,7 @@
       --success-bg: #f0fdf4;
       --warning-color: #b45309;
       --warning-bg: #fffbeb;
-      --card-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
       --code-bg: #0f172a;
       --code-text: #f8fafc;
       --font-family: 'Outfit', system-ui, -apple-system, sans-serif;
@@ -47,7 +48,7 @@
         --success-bg: #064e3b;
         --warning-color: #f59e0b;
         --warning-bg: #78350f;
-        --card-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         --code-bg: #030712;
       }
     }
@@ -167,8 +168,15 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* Typography & Block titles */
@@ -190,7 +198,7 @@
       margin-bottom: 1.5rem;
       font-size: 0.875rem;
     }
-    
+
     .status-alert.success {
       background: var(--success-bg);
       color: var(--success-color);
@@ -241,7 +249,8 @@
       color: var(--text-muted);
     }
 
-    input, select {
+    input,
+    select {
       background: var(--bg-color);
       border: 2px solid var(--border-color);
       color: var(--text-color);
@@ -252,7 +261,8 @@
       transition: border-color 0.2s;
     }
 
-    input:focus, select:focus {
+    input:focus,
+    select:focus {
       border-color: var(--text-color);
     }
 
@@ -505,17 +515,18 @@
     }
   </style>
 </head>
+
 <body>
 
   <div class="container">
-    
+
     <!-- HEADER -->
     <header>
       <div class="header-title">
         <h1>Tuya Environment Agent</h1>
-        <p>Pure API Collector for Temperature & Humidity Sensors</p>
+        <p>Collector for Tuya Temperature & Humidity Sensors</p>
       </div>
-      <span class="version-badge" id="app-version">v1.0.0</span>
+      <span class="version-badge" id="app-version">loading...</span>
     </header>
 
     <!-- NAVIGATION TABS -->
@@ -527,7 +538,7 @@
 
     <!-- MAIN PANEL -->
     <main>
-      
+
       <!-- TAB 1: DEVICES -->
       <div id="tab-devices" class="tab-content active">
         <h2>
@@ -541,7 +552,8 @@
         <div id="device-alert" class="status-alert" style="display: none;"></div>
 
         <!-- Add Device Form -->
-        <div class="form-grid" style="background: var(--bg-color); border: 2px dashed var(--border-color); padding: 1.25rem; border-radius: 0;">
+        <div class="form-grid"
+          style="background: var(--bg-color); border: 2px dashed var(--border-color); padding: 1.25rem; border-radius: 0;">
           <div class="form-group">
             <label for="new-device-id">Tuya Device ID</label>
             <input type="text" id="new-device-id" placeholder="e.g. bf121998c06e5ff9599iqm">
@@ -550,7 +562,8 @@
             <label for="new-device-location">Location Tag</label>
             <input type="text" id="new-device-location" placeholder="e.g. Balcony, Living Room">
           </div>
-          <div class="form-group full-width" style="display: flex; flex-direction: row; justify-content: flex-end; margin-top: 0.5rem;">
+          <div class="form-group full-width"
+            style="display: flex; flex-direction: row; justify-content: flex-end; margin-top: 0.5rem;">
             <button class="btn" onclick="addDevice()">Add Sensor</button>
           </div>
         </div>
@@ -563,11 +576,13 @@
       <!-- TAB 2: SETTINGS -->
       <div id="tab-settings" class="tab-content">
         <h2>Configure Connections</h2>
-        
+
         <div id="settings-alert" class="status-alert" style="display: none;"></div>
 
         <form id="settings-form" onsubmit="saveSettings(event)">
-          <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1rem;">Tuya Cloud API Configuration</h3>
+          <h3
+            style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1rem;">
+            Tuya Cloud API Configuration</h3>
           <div class="form-grid">
             <div class="form-group full-width">
               <label for="set-tuya-url">Tuya API Base Endpoint</label>
@@ -583,7 +598,9 @@
             </div>
           </div>
 
-          <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 1rem 0;">InfluxDB Storage Configuration</h3>
+          <h3
+            style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 1rem 0;">
+            InfluxDB Storage Configuration</h3>
           <div class="form-grid">
             <div class="form-group full-width">
               <label for="set-influx-url">InfluxDB Address URL</label>
@@ -603,11 +620,13 @@
             </div>
           </div>
 
-          <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 1rem 0;">General Settings</h3>
+          <h3
+            style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 1rem 0;">
+            General Settings</h3>
           <div class="form-grid">
             <div class="form-group">
               <label>Update Interval</label>
-              <div class="read-only-box">1 Hour (Single Hardcoded)</div>
+              <div class="read-only-box">1 Hour</div>
             </div>
             <div class="form-group">
               <label for="set-log-level">Agent Log Level</label>
@@ -620,7 +639,8 @@
             </div>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem; border-top: 2px solid var(--border-color); padding-top: 1.25rem;">
+          <div
+            style="display: flex; justify-content: flex-end; margin-top: 1.5rem; border-top: 2px solid var(--border-color); padding-top: 1.25rem;">
             <button type="submit" class="btn">Save Configuration</button>
           </div>
         </form>
@@ -635,24 +655,32 @@
             <span style="font-size: 0.9rem; font-weight: 600;">System Logs Console</span>
             <div style="display: flex; gap: 0.75rem; align-items: center;">
               <label for="log-toggle" style="font-size: 0.8rem; cursor: pointer;">Enable Polling</label>
-              <input type="checkbox" id="log-toggle" style="width: 18px; height: 18px; cursor: pointer;" onchange="toggleLogsPolling()">
-              <button class="btn btn-secondary" onclick="clearConsoleLogs()" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Clear Screen</button>
+              <input type="checkbox" id="log-toggle" style="width: 18px; height: 18px; cursor: pointer;"
+                onchange="toggleLogsPolling()">
+              <button class="btn btn-secondary" onclick="clearConsoleLogs()"
+                style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Clear Screen</button>
             </div>
           </div>
 
           <div class="console" id="log-console">
-            <div class="log-line" style="color: var(--text-muted);">Enable polling to stream live log output from the container...</div>
+            <div class="log-line" style="color: var(--text-muted);">Enable polling to stream live log output from the
+              container...</div>
           </div>
         </div>
 
         <div class="help-content" style="margin-top: 2rem;">
           <h3>Documentation & Overview</h3>
-          <p>This collector agent runs in the background to scrape environmental metrics from Tuya sensors. The polled metrics are parsed dynamically based on the device product signature, cached locally, and then written into InfluxDB.</p>
-          
+          <p>This collector agent runs in the background to scrape environmental metrics from Tuya sensors. The polled
+            metrics are parsed dynamically based on the device product signature, cached locally, and then written into
+            InfluxDB.</p>
+
           <p><strong>Supported Sensor Frameworks:</strong></p>
           <ul>
-            <li><strong>T & H Sensor (Type 1):</strong> Parses <code>temp_current</code> (divided by 10), <code>humidity_value</code>, and <code>battery_state</code> (string).</li>
-            <li><strong>Temperature & Humidity Sensor (Type 2):</strong> Parses <code>va_temperature</code> (divided by 10), <code>va_humidity</code>, and <code>battery_percentage</code> (integer).</li>
+            <li><strong>T & H Sensor (Type 1):</strong> Parses <code>temp_current</code> (divided by 10),
+              <code>humidity_value</code>, and <code>battery_state</code> (string).
+            </li>
+            <li><strong>Temperature & Humidity Sensor (Type 2):</strong> Parses <code>va_temperature</code> (divided by
+              10), <code>va_humidity</code>, and <code>battery_percentage</code> (integer).</li>
           </ul>
 
           <p><strong>Local DB File Path:</strong> <code id="db-file-label">Loading path...</code></p>
@@ -664,7 +692,6 @@
     <!-- FOOTER -->
     <footer>
       <div>Tuya Temp/Hum Sensor Collector Agent Portal</div>
-      <div style="opacity: 0.7;">State-of-the-Art Containerized Collector Module</div>
     </footer>
 
   </div>
@@ -720,16 +747,16 @@
       try {
         const r = await fetch('/api/settings');
         const settings = await r.json();
-        
+
         document.getElementById('set-tuya-url').value = settings.tuya_url || 'https://openapi.tuyaeu.com';
         document.getElementById('set-tuya-client-id').value = settings.tuya_client_id || '';
         document.getElementById('set-tuya-secret').value = settings.tuya_client_secret || '';
-        
+
         document.getElementById('set-influx-url').value = settings.influx_url || '';
         document.getElementById('set-influx-token').value = settings.influx_token || '';
         document.getElementById('set-influx-org').value = settings.influx_org || '';
         document.getElementById('set-influx-bucket').value = settings.influx_bucket || '';
-        
+
         document.getElementById('set-log-level').value = settings.log_level || 'INFO';
       } catch (err) {
         showAlert('settings-alert', 'Failed to retrieve connection settings from SQLite DB.', true);
@@ -743,12 +770,12 @@
         tuya_url: document.getElementById('set-tuya-url').value,
         tuya_client_id: document.getElementById('set-tuya-client-id').value,
         tuya_client_secret: document.getElementById('set-tuya-secret').value,
-        
+
         influx_url: document.getElementById('set-influx-url').value,
         influx_token: document.getElementById('set-influx-token').value,
         influx_org: document.getElementById('set-influx-org').value,
         influx_bucket: document.getElementById('set-influx-bucket').value,
-        
+
         log_level: document.getElementById('set-log-level').value
       };
 
@@ -855,7 +882,7 @@
     async function addDevice() {
       const idInput = document.getElementById('new-device-id');
       const locInput = document.getElementById('new-device-location');
-      
+
       const payload = {
         id: idInput.value.trim(),
         location: locInput.value.trim()
@@ -915,7 +942,7 @@
       const btn = document.getElementById('btn-sync-all');
       btn.disabled = true;
       btn.innerText = 'Syncing...';
-      
+
       try {
         const r = await fetch('/api/devices/sync', { method: 'POST' });
         const res = await r.json();
@@ -952,7 +979,7 @@
       try {
         const r = await fetch('/api/logs');
         const data = await r.json();
-        
+
         if (data.logs.length === 0) {
           consoleDiv.innerHTML = '<div class="log-line" style="color: var(--text-muted);">Console buffer is currently empty.</div>';
           return;
@@ -980,10 +1007,11 @@
     }
 
     // Initial page load triggers
-    window.onload = function() {
+    window.onload = function () {
       loadAppInfo();
       loadDevices();
     };
   </script>
 </body>
+
 </html>

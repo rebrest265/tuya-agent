@@ -17,10 +17,11 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 # Configuration & Constants
 # -------------------------------------------------------------
 DB_PATH = os.environ.get("DB_PATH", "/data/agent.db")
-APP_VERSION = os.environ.get("APP_VERSION", "v1.0.0")
+BUILD_VERSION = os.environ.get("BUILD_VERSION", "dev")
 
 # Ensure the database directory exists
-os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
+_db_dir = os.path.dirname(os.path.abspath(DB_PATH))
+os.makedirs(_db_dir, exist_ok=True)
 
 # -------------------------------------------------------------
 # Logging Configuration
@@ -56,6 +57,8 @@ def get_db_connection():
     return conn
 
 def init_db():
+    db_is_new = not os.path.exists(DB_PATH)
+    logger.info(f"Initializing database at: {DB_PATH} ({'creating new' if db_is_new else 'opening existing'})")
     conn = get_db_connection()
     try:
         conn.execute("""
@@ -71,6 +74,7 @@ def init_db():
             log_level TEXT DEFAULT 'INFO'
         )
         """)
+        logger.debug("Table 'settings' verified.")
         conn.execute("""
         CREATE TABLE IF NOT EXISTS devices (
             id TEXT PRIMARY KEY,
@@ -85,13 +89,19 @@ def init_db():
             last_error TEXT
         )
         """)
-        conn.execute("""
+        logger.debug("Table 'devices' verified.")
+        # Always ensure the single settings row exists (initial DB seed)
+        result = conn.execute("""
         INSERT OR IGNORE INTO settings (id, tuya_url, tuya_client_id, tuya_client_secret, influx_url, influx_token, influx_org, influx_bucket, log_level)
         VALUES (1, 'https://openapi.tuyaeu.com', '', '', '', '', '', '', 'INFO')
         """)
+        if result.rowcount > 0:
+            logger.info("Initial settings row seeded into database.")
         conn.commit()
+        logger.info("Database initialization complete.")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
+        raise
     finally:
         conn.close()
 
@@ -164,9 +174,11 @@ class TuyaClient:
         with self._lock:
             now = time.time()
             if self.access_token and now < self.token_expires_at - 300:
+                remaining = int(self.token_expires_at - now)
+                logger.debug(f"Using cached Tuya access token (expires in ~{remaining}s).")
                 return self.access_token
 
-            logger.info("Fetching fresh access token from Tuya...")
+            logger.info("Cached token absent or near expiry. Fetching fresh access token from Tuya...")
             query = {"grant_type": "1"}
             path = "/v1.0/token"
             headers = self._get_headers(path, query_params=query)
@@ -367,21 +379,24 @@ def run_collection(device_id=None):
 # -------------------------------------------------------------
 shutdown_event = threading.Event()
 
+COLLECTION_INTERVAL_SECONDS = int(os.environ.get("COLLECTION_INTERVAL", "3600"))
+
 def scheduler_worker():
     logger.info("Background scheduler thread initialized.")
-    # On start, sleep briefly then run initial sync
+    logger.info(f"Collection interval: {COLLECTION_INTERVAL_SECONDS}s. Running initial sync in 5s...")
     time.sleep(5)
-    
+
     while not shutdown_event.is_set():
         try:
             run_collection()
         except Exception as e:
-            logger.error(f"Error in scheduler execution cycle: {e}")
-            
-        # Poll shutdown event in short intervals to shutdown cleanly
-        # Total interval = 3600 seconds (1 hour)
-        for _ in range(3600):
+            logger.error(f"Unhandled error in scheduler execution cycle: {e}")
+
+        logger.info(f"Next collection scheduled in {COLLECTION_INTERVAL_SECONDS}s.")
+        # Poll shutdown event in short intervals to allow clean exit
+        for _ in range(COLLECTION_INTERVAL_SECONDS):
             if shutdown_event.is_set():
+                logger.info("Shutdown signal received. Exiting scheduler.")
                 break
             time.sleep(1)
 
@@ -397,7 +412,7 @@ def index():
 @app.route("/api/info")
 def get_info():
     return jsonify({
-        "version": APP_VERSION,
+        "version": BUILD_VERSION,
         "database": DB_PATH
     })
 
@@ -506,19 +521,25 @@ def get_logs():
 # Main Entry Point
 # -------------------------------------------------------------
 def main():
+    logger.info("=" * 60)
+    logger.info(f" Tuya Agent starting up")
+    logger.info(f" Version  : {BUILD_VERSION}")
+    logger.info(f" Database : {DB_PATH}")
+    logger.info("=" * 60)
+
     init_db()
     apply_log_level_from_db()
-    
-    # Launch worker thread
-    t = threading.Thread(target=scheduler_worker, daemon=True)
+
+    # Launch background collection worker
+    t = threading.Thread(target=scheduler_worker, daemon=True, name="scheduler")
     t.start()
-    
+    logger.info("Background scheduler thread started.")
+
     try:
-        # Run Flask development server (or WSGI container when built)
-        # Port 5000 is default, bound to all interfaces inside the container
+        logger.info("Starting Gunicorn/Flask on 0.0.0.0:5000")
         app.run(host="0.0.0.0", port=5000)
     finally:
-        # Shutdown cleanly
+        logger.info("Shutdown signal received. Stopping scheduler...")
         shutdown_event.set()
 
 if __name__ == "__main__":
