@@ -1,0 +1,10 @@
+.git
+.gitignore
+Dockerfile
+example-deployment.yaml
+README.md
+*.db
+__pycache__/
+*.pyc
+venv/
+.idea/

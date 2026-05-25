@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tuya-agent-pv
+  labels:
+    app: tuya-agent
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/tuya-agent-data" # Configurable host path on the Kubernetes node
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tuya-agent-pvc
+  labels:
+    app: tuya-agent
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tuya-agent
+  labels:
+    app: tuya-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tuya-agent
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: tuya-agent
+    spec:
+      containers:
+        - name: tuya-agent
+          image: tuya-agent:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+              name: webconfig
+          env:
+            - name: DB_PATH
+              value: "/data/agent.db"
+          volumeMounts:
+            - name: data-volume
+              mountPath: /data
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: tuya-agent-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tuya-agent-service
+  labels:
+    app: tuya-agent
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 5000
+      nodePort: 30845
+      protocol: TCP
+      name: http
+  selector:
+    app: tuya-agent

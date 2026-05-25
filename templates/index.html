@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tuya Environmental Collector Portal</title>
+  <!-- Modern clean font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* Neutral System Light Theme */
+      --bg-color: #f4f5f6;
+      --panel-bg: #ffffff;
+      --border-color: #e2e4e6;
+      --text-color: #1a1f26;
+      --text-muted: #64748b;
+      --accent-color: #0f172a;
+      --accent-hover: #1e293b;
+      --danger-color: #b91c1c;
+      --danger-hover: #991b1b;
+      --success-color: #15803d;
+      --success-bg: #f0fdf4;
+      --warning-color: #b45309;
+      --warning-bg: #fffbeb;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      --code-bg: #0f172a;
+      --code-text: #f8fafc;
+      --font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        /* Neutral System Dark Theme */
+        --bg-color: #0b0f19;
+        --panel-bg: #111827;
+        --border-color: #1f2937;
+        --text-color: #f3f4f6;
+        --text-muted: #9ca3af;
+        --accent-color: #374151;
+        --accent-hover: #4b5563;
+        --danger-color: #ef4444;
+        --danger-hover: #f87171;
+        --success-color: #10b981;
+        --success-bg: #064e3b;
+        --warning-color: #f59e0b;
+        --warning-bg: #78350f;
+        --card-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        --code-bg: #030712;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family);
+      line-height: 1.5;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Header styling with block layout */
+    header {
+      background: var(--panel-bg);
+      border: 2px solid var(--border-color);
+      padding: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--card-shadow);
+    }
+
+    .header-title h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+
+    .header-title p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .version-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: var(--accent-color);
+      color: #ffffff;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--border-color);
+      text-transform: uppercase;
+    }
+
+    /* Navigation tabs block style */
+    nav {
+      display: flex;
+      background: var(--panel-bg);
+      border: 2px solid var(--border-color);
+      padding: 0.35rem;
+      gap: 0.35rem;
+      box-shadow: var(--card-shadow);
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-color);
+      background: var(--bg-color);
+    }
+
+    .tab-btn.active {
+      color: var(--text-color);
+      background: var(--bg-color);
+      border-color: var(--border-color);
+      font-weight: 600;
+    }
+
+    /* Main Tab Content Panel */
+    main {
+      background: var(--panel-bg);
+      border: 2px solid var(--border-color);
+      padding: 2rem;
+      box-shadow: var(--card-shadow);
+      min-height: 400px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Typography & Block titles */
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Alerts and Status blocks */
+    .status-alert {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .status-alert.success {
+      background: var(--success-bg);
+      color: var(--success-color);
+      border-color: var(--success-color);
+    }
+
+    .status-alert.error {
+      background: #fdf2f2;
+      color: var(--danger-color);
+      border-color: var(--danger-color);
+    }
+
+    /* Forms Layout */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 600px) {
+      .form-group.full-width {
+        grid-column: span 1;
+      }
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    input, select {
+      background: var(--bg-color);
+      border: 2px solid var(--border-color);
+      color: var(--text-color);
+      padding: 0.65rem 0.85rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--text-color);
+    }
+
+    /* Buttons block style */
+    .btn {
+      background: var(--accent-color);
+      color: #ffffff;
+      border: 2px solid var(--border-color);
+      padding: 0.65rem 1.25rem;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn.btn-secondary {
+      background: transparent;
+      color: var(--text-color);
+      border-color: var(--border-color);
+    }
+
+    .btn.btn-secondary:hover {
+      background: var(--bg-color);
+    }
+
+    .btn.btn-danger {
+      background: var(--danger-color);
+      border-color: var(--danger-color);
+    }
+
+    .btn.btn-danger:hover {
+      background: var(--danger-hover);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Device List & Card Design */
+    .device-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .device-card {
+      background: var(--bg-color);
+      border: 2px solid var(--border-color);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+    }
+
+    .device-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.75rem;
+    }
+
+    .device-title-block {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .device-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .device-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .device-badge-list {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      display: inline-block;
+    }
+
+    .status-dot.online {
+      background: var(--success-color);
+    }
+
+    .status-dot.offline {
+      background: var(--danger-color);
+    }
+
+    .device-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      padding: 0.75rem;
+    }
+
+    .metric-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      text-align: center;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-value {
+      font-weight: 600;
+      font-size: 1.15rem;
+    }
+
+    .error-log-block {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-color);
+      color: var(--warning-color);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .device-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Logs console block design */
+    .log-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .log-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1rem;
+    }
+
+    .console {
+      background: var(--code-bg);
+      color: var(--code-text);
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.825rem;
+      padding: 1.25rem;
+      height: 350px;
+      overflow-y: scroll;
+      border: 2px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .log-line {
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Form read-only values */
+    .read-only-box {
+      background: var(--border-color);
+      padding: 0.65rem 0.85rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      opacity: 0.8;
+      border: 2px solid var(--border-color);
+    }
+
+    /* Help Page markdown styling */
+    .help-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .help-content h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+
+    .help-content ul {
+      margin-left: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .help-content code {
+      background: var(--bg-color);
+      padding: 0.15rem 0.4rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Footer styling */
+    footer {
+      text-align: center;
+      margin-top: auto;
+      padding-top: 2rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- HEADER -->
+    <header>
+      <div class="header-title">
+        <h1>Tuya Environment Agent</h1>
+        <p>Pure API Collector for Temperature & Humidity Sensors</p>
+      </div>
+      <span class="version-badge" id="app-version">v1.0.0</span>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav>
+      <button class="tab-btn active" onclick="switchTab('tab-devices')">Devices</button>
+      <button class="tab-btn" onclick="switchTab('tab-settings')">Settings</button>
+      <button class="tab-btn" onclick="switchTab('tab-help')">Diagnostics & Help</button>
+    </nav>
+
+    <!-- MAIN PANEL -->
+    <main>
+      
+      <!-- TAB 1: DEVICES -->
+      <div id="tab-devices" class="tab-content active">
+        <h2>
+          <span>Registered Sensors</span>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary" onclick="syncAllDevices()" id="btn-sync-all">Sync Now</button>
+          </div>
+        </h2>
+
+        <!-- Alert messages -->
+        <div id="device-alert" class="status-alert" style="display: none;"></div>
+
+        <!-- Add Device Form -->
+        <div class="form-grid" style="background: var(--bg-color); border: 2px dashed var(--border-color); padding: 1.25rem; border-radius: 0;">
+          <div class="form-group">
+            <label for="new-device-id">Tuya Device ID</label>
+            <input type="text" id="new-device-id" placeholder="e.g. bf121998c06e5ff9599iqm">
+          </div>
+          <div class="form-group">
+            <label for="new-device-location">Location Tag</label>
+            <input type="text" id="new-device-location" placeholder="e.g. Balcony, Living Room">
+          </div>
+          <div class="form-group full-width" style="display: flex; flex-direction: row; justify-content: flex-end; margin-top: 0.5rem;">
+            <button class="btn" onclick="addDevice()">Add Sensor</button>
+          </div>
+        </div>
+
+        <div class="device-grid" id="devices-container">
+          <p style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Loading devices...</p>
+        </div>
+      </div>
+
+      <!-- TAB 2: SETTINGS -->
+      <div id="tab-settings" class="tab-content">
+        <h2>Configure Connections</h2>
+        
+        <div id="settings-alert" class="status-alert" style="display: none;"></div>
+
+        <form id="settings-form" onsubmit="saveSettings(event)">
+          <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1rem;">Tuya Cloud API Configuration</h3>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label for="set-tuya-url">Tuya API Base Endpoint</label>
+              <input type="url" id="set-tuya-url" required>
+            </div>
+            <div class="form-group">
+              <label for="set-tuya-client-id">Access ID (Client ID)</label>
+              <input type="text" id="set-tuya-client-id" required>
+            </div>
+            <div class="form-group">
+              <label for="set-tuya-secret">Access Secret (Client Secret)</label>
+              <input type="password" id="set-tuya-secret" required>
+            </div>
+          </div>
+
+          <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 1rem 0;">InfluxDB Storage Configuration</h3>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label for="set-influx-url">InfluxDB Address URL</label>
+              <input type="url" id="set-influx-url" placeholder="e.g. http://influxdb.monitoring.svc:8086">
+            </div>
+            <div class="form-group">
+              <label for="set-influx-token">Token</label>
+              <input type="password" id="set-influx-token">
+            </div>
+            <div class="form-group">
+              <label for="set-influx-org">Organization Name</label>
+              <input type="text" id="set-influx-org" placeholder="e.g. my-org">
+            </div>
+            <div class="form-group">
+              <label for="set-influx-bucket">Bucket Name</label>
+              <input type="text" id="set-influx-bucket" placeholder="e.g. iot_data">
+            </div>
+          </div>
+
+          <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 1rem 0;">General Settings</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Update Interval</label>
+              <div class="read-only-box">1 Hour (Single Hardcoded)</div>
+            </div>
+            <div class="form-group">
+              <label for="set-log-level">Agent Log Level</label>
+              <select id="set-log-level">
+                <option value="DEBUG">DEBUG</option>
+                <option value="INFO">INFO</option>
+                <option value="WARNING">WARNING</option>
+                <option value="ERROR">ERROR</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem; border-top: 2px solid var(--border-color); padding-top: 1.25rem;">
+            <button type="submit" class="btn">Save Configuration</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- TAB 3: HELP & DIAGNOSTICS -->
+      <div id="tab-help" class="tab-content">
+        <h2>Live Diagnostics & Help</h2>
+
+        <div class="log-panel">
+          <div class="log-controls">
+            <span style="font-size: 0.9rem; font-weight: 600;">System Logs Console</span>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <label for="log-toggle" style="font-size: 0.8rem; cursor: pointer;">Enable Polling</label>
+              <input type="checkbox" id="log-toggle" style="width: 18px; height: 18px; cursor: pointer;" onchange="toggleLogsPolling()">
+              <button class="btn btn-secondary" onclick="clearConsoleLogs()" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">Clear Screen</button>
+            </div>
+          </div>
+
+          <div class="console" id="log-console">
+            <div class="log-line" style="color: var(--text-muted);">Enable polling to stream live log output from the container...</div>
+          </div>
+        </div>
+
+        <div class="help-content" style="margin-top: 2rem;">
+          <h3>Documentation & Overview</h3>
+          <p>This collector agent runs in the background to scrape environmental metrics from Tuya sensors. The polled metrics are parsed dynamically based on the device product signature, cached locally, and then written into InfluxDB.</p>
+          
+          <p><strong>Supported Sensor Frameworks:</strong></p>
+          <ul>
+            <li><strong>T & H Sensor (Type 1):</strong> Parses <code>temp_current</code> (divided by 10), <code>humidity_value</code>, and <code>battery_state</code> (string).</li>
+            <li><strong>Temperature & Humidity Sensor (Type 2):</strong> Parses <code>va_temperature</code> (divided by 10), <code>va_humidity</code>, and <code>battery_percentage</code> (integer).</li>
+          </ul>
+
+          <p><strong>Local DB File Path:</strong> <code id="db-file-label">Loading path...</code></p>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+      <div>Tuya Temp/Hum Sensor Collector Agent Portal</div>
+      <div style="opacity: 0.7;">State-of-the-Art Containerized Collector Module</div>
+    </footer>
+
+  </div>
+
+  <script>
+    let logIntervalId = null;
+
+    // Switch between navigation tabs
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      // Find trigger button and activate
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+
+      if (tabId === 'tab-devices') {
+        loadDevices();
+      } else if (tabId === 'tab-settings') {
+        loadSettings();
+      }
+    }
+
+    // Custom alerts wrapper
+    function showAlert(elementId, text, isError = false) {
+      const alertDiv = document.getElementById(elementId);
+      alertDiv.innerText = text;
+      alertDiv.className = `status-alert ${isError ? 'error' : 'success'}`;
+      alertDiv.style.display = 'block';
+      setTimeout(() => {
+        alertDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    // Fetch and display basic application environment details
+    async function loadAppInfo() {
+      try {
+        const r = await fetch('/api/info');
+        const data = await r.json();
+        document.getElementById('app-version').innerText = data.version;
+        document.getElementById('db-file-label').innerText = data.database;
+      } catch (err) {
+        console.error("Failed to load app info", err);
+      }
+    }
+
+    // Load connection configurations from DB
+    async function loadSettings() {
+      try {
+        const r = await fetch('/api/settings');
+        const settings = await r.json();
+        
+        document.getElementById('set-tuya-url').value = settings.tuya_url || 'https://openapi.tuyaeu.com';
+        document.getElementById('set-tuya-client-id').value = settings.tuya_client_id || '';
+        document.getElementById('set-tuya-secret').value = settings.tuya_client_secret || '';
+        
+        document.getElementById('set-influx-url').value = settings.influx_url || '';
+        document.getElementById('set-influx-token').value = settings.influx_token || '';
+        document.getElementById('set-influx-org').value = settings.influx_org || '';
+        document.getElementById('set-influx-bucket').value = settings.influx_bucket || '';
+        
+        document.getElementById('set-log-level').value = settings.log_level || 'INFO';
+      } catch (err) {
+        showAlert('settings-alert', 'Failed to retrieve connection settings from SQLite DB.', true);
+      }
+    }
+
+    // Save configurations to DB
+    async function saveSettings(e) {
+      e.preventDefault();
+      const payload = {
+        tuya_url: document.getElementById('set-tuya-url').value,
+        tuya_client_id: document.getElementById('set-tuya-client-id').value,
+        tuya_client_secret: document.getElementById('set-tuya-secret').value,
+        
+        influx_url: document.getElementById('set-influx-url').value,
+        influx_token: document.getElementById('set-influx-token').value,
+        influx_org: document.getElementById('set-influx-org').value,
+        influx_bucket: document.getElementById('set-influx-bucket').value,
+        
+        log_level: document.getElementById('set-log-level').value
+      };
+
+      try {
+        const r = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const res = await r.json();
+        if (res.success) {
+          showAlert('settings-alert', 'Configuration saved and dynamic settings applied.');
+        } else {
+          showAlert('settings-alert', res.message, true);
+        }
+      } catch (err) {
+        showAlert('settings-alert', 'Could not save connection details.', true);
+      }
+    }
+
+    // Fetch and render registered devices list
+    async function loadDevices() {
+      const container = document.getElementById('devices-container');
+      try {
+        const r = await fetch('/api/devices');
+        const devices = await r.json();
+
+        if (devices.length === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; color: var(--text-muted); padding: 3rem 0; border: 2px dashed var(--border-color);">
+              No sensors registered yet. Add a sensor above to begin collecting data.
+            </div>`;
+          return;
+        }
+
+        let html = '';
+        devices.forEach(dev => {
+          const onlineClass = dev.online === 1 ? 'online' : 'offline';
+          const tempDisplay = dev.temperature !== null ? `${dev.temperature} °C` : '--';
+          const humDisplay = dev.humidity !== null ? `${dev.humidity} %` : '--';
+          let batDisplay = '--';
+          if (dev.battery !== null) {
+            batDisplay = typeof dev.battery === 'number' ? `${dev.battery}%` : dev.battery;
+          }
+
+          html += `
+            <div class="device-card">
+              <div class="device-card-header">
+                <div class="device-title-block">
+                  <div class="device-name">${dev.name || 'Device Pending Init'}</div>
+                  <div class="device-meta">ID: <code>${dev.id}</code> | Signature: <b>${dev.product_name || 'Detecting...'}</b></div>
+                </div>
+                <div class="device-badge-list">
+                  <span class="status-dot ${onlineClass}"></span>
+                  <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 600; margin-right: 0.25rem;">
+                    ${dev.online === 1 ? 'Online' : 'Offline / Error'}
+                  </span>
+                  ${dev.battery !== null ? `
+                    <span style="font-size: 0.75rem; font-weight: 600; background: var(--border-color); color: var(--text-color); padding: 0.15rem 0.4rem; border: 1px solid var(--border-color); display: inline-flex; align-items: center; gap: 0.25rem;">
+                      🔋 ${typeof dev.battery === 'number' ? dev.battery + '%' : dev.battery}
+                    </span>
+                  ` : ''}
+                </div>
+              </div>
+              
+              <div class="device-metrics">
+                <div class="metric-box">
+                  <span class="metric-label">Temp</span>
+                  <span class="metric-value">${tempDisplay}</span>
+                </div>
+                <div class="metric-box" style="border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color);">
+                  <span class="metric-label">Humidity</span>
+                  <span class="metric-value">${humDisplay}</span>
+                </div>
+                <div class="metric-box">
+                  <span class="metric-label">Battery</span>
+                  <span class="metric-value">${batDisplay}</span>
+                </div>
+              </div>
+
+              ${dev.last_error ? `
+                <div class="error-log-block">
+                  <strong>Sync Error:</strong> ${dev.last_error}
+                </div>
+              ` : ''}
+
+              <div class="device-actions">
+                <span>Location: <strong>${dev.location}</strong></span>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <span style="font-size: 0.7rem;">Synced: ${dev.last_seen || 'Never'}</span>
+                  <button class="btn btn-secondary btn-danger" onclick="deleteDevice('${dev.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; line-height:1;">Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      } catch (err) {
+        container.innerHTML = `<p style="color: var(--danger-color); text-align: center; padding: 2rem 0;">Error reading devices from SQLite database.</p>`;
+      }
+    }
+
+    // Register a new sensor device ID & location tag
+    async function addDevice() {
+      const idInput = document.getElementById('new-device-id');
+      const locInput = document.getElementById('new-device-location');
+      
+      const payload = {
+        id: idInput.value.trim(),
+        location: locInput.value.trim()
+      };
+
+      if (!payload.id || !payload.location) {
+        showAlert('device-alert', 'Please fill in both Device ID and Location Tag fields.', true);
+        return;
+      }
+
+      try {
+        const r = await fetch('/api/devices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const res = await r.json();
+        if (res.success) {
+          showAlert('device-alert', 'Sensor registered. Fetching metrics in the background...');
+          idInput.value = '';
+          locInput.value = '';
+          // Refresh lists quickly, then query again in a moment
+          setTimeout(loadDevices, 500);
+          setTimeout(loadDevices, 3000);
+        } else {
+          showAlert('device-alert', res.message, true);
+        }
+      } catch (err) {
+        showAlert('device-alert', 'Unable to register device inside SQLite DB.', true);
+      }
+    }
+
+    // Deregister/Delete sensor from DB
+    async function deleteDevice(deviceId) {
+      if (!confirm(`Are you sure you want to delete device ${deviceId}?`)) {
+        return;
+      }
+
+      try {
+        const r = await fetch(`/api/devices/${deviceId}`, {
+          method: 'DELETE'
+        });
+        const res = await r.json();
+        if (res.success) {
+          showAlert('device-alert', 'Sensor successfully removed.');
+          loadDevices();
+        } else {
+          showAlert('device-alert', res.message, true);
+        }
+      } catch (err) {
+        showAlert('device-alert', 'Could not delete device.', true);
+      }
+    }
+
+    // Trigger immediate global collection run
+    async function syncAllDevices() {
+      const btn = document.getElementById('btn-sync-all');
+      btn.disabled = true;
+      btn.innerText = 'Syncing...';
+      
+      try {
+        const r = await fetch('/api/devices/sync', { method: 'POST' });
+        const res = await r.json();
+        showAlert('device-alert', 'Global sync task triggered.');
+        // Refresh view periodically after trigger
+        setTimeout(loadDevices, 2000);
+        setTimeout(loadDevices, 5000);
+      } catch (err) {
+        showAlert('device-alert', 'Failed to trigger collection sync.', true);
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerText = 'Sync Now';
+        }, 3000);
+      }
+    }
+
+    // Live logging polling controls
+    function toggleLogsPolling() {
+      const checkbox = document.getElementById('log-toggle');
+      if (checkbox.checked) {
+        fetchLogs();
+        logIntervalId = setInterval(fetchLogs, 3000);
+      } else {
+        if (logIntervalId) {
+          clearInterval(logIntervalId);
+          logIntervalId = null;
+        }
+      }
+    }
+
+    async function fetchLogs() {
+      const consoleDiv = document.getElementById('log-console');
+      try {
+        const r = await fetch('/api/logs');
+        const data = await r.json();
+        
+        if (data.logs.length === 0) {
+          consoleDiv.innerHTML = '<div class="log-line" style="color: var(--text-muted);">Console buffer is currently empty.</div>';
+          return;
+        }
+
+        consoleDiv.innerHTML = data.logs.map(line => `<div class="log-line">${escapeHtml(line)}</div>`).join('');
+        // Auto-scroll to bottom
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+      } catch (err) {
+        console.error("Failed to read logs", err);
+      }
+    }
+
+    function clearConsoleLogs() {
+      document.getElementById('log-console').innerHTML = '<div class="log-line" style="color: var(--text-muted);">Console logs cleared visually.</div>';
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Initial page load triggers
+    window.onload = function() {
+      loadAppInfo();
+      loadDevices();
+    };
+  </script>
+</body>
+</html>
