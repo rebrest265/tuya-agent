@@ -358,6 +358,19 @@
       align-items: center;
     }
 
+    @media (max-width: 600px) {
+      .device-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+      .device-badge-list {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+    }
+
     .status-dot {
       width: 8px;
       height: 8px;
@@ -625,8 +638,15 @@
             General Settings</h3>
           <div class="form-grid">
             <div class="form-group">
-              <label>Update Interval</label>
-              <div class="read-only-box">1 Hour</div>
+              <label for="set-update-interval">Update Interval</label>
+              <select id="set-update-interval">
+                <option value="300">5 Minutes</option>
+                <option value="600">10 Minutes</option>
+                <option value="900">15 Minutes</option>
+                <option value="1800">30 Minutes</option>
+                <option value="2700">45 Minutes</option>
+                <option value="3600">1 Hour</option>
+              </select>
             </div>
             <div class="form-group">
               <label for="set-log-level">Agent Log Level</label>
@@ -758,6 +778,7 @@
         document.getElementById('set-influx-bucket').value = settings.influx_bucket || '';
 
         document.getElementById('set-log-level').value = settings.log_level || 'INFO';
+        document.getElementById('set-update-interval').value = settings.update_interval || 3600;
       } catch (err) {
         showAlert('settings-alert', 'Failed to retrieve connection settings from SQLite DB.', true);
       }
@@ -776,7 +797,8 @@
         influx_org: document.getElementById('set-influx-org').value,
         influx_bucket: document.getElementById('set-influx-bucket').value,
 
-        log_level: document.getElementById('set-log-level').value
+        log_level: document.getElementById('set-log-level').value,
+        update_interval: parseInt(document.getElementById('set-update-interval').value, 10)
       };
 
       try {

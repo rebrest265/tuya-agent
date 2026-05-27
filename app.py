@@ -71,10 +71,20 @@ def init_db():
             influx_token TEXT,
             influx_org TEXT,
             influx_bucket TEXT,
-            log_level TEXT DEFAULT 'INFO'
+            log_level TEXT DEFAULT 'INFO',
+            update_interval INTEGER DEFAULT 3600
         )
         """)
         logger.debug("Table 'settings' verified.")
+        
+        # Migration: Add update_interval column to settings table if it doesn't exist
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(settings)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "update_interval" not in columns:
+            logger.info("Migrating settings table: adding update_interval column")
+            conn.execute("ALTER TABLE settings ADD COLUMN update_interval INTEGER DEFAULT 3600")
+
         conn.execute("""
         CREATE TABLE IF NOT EXISTS devices (
             id TEXT PRIMARY KEY,
@@ -90,10 +100,11 @@ def init_db():
         )
         """)
         logger.debug("Table 'devices' verified.")
+        
         # Always ensure the single settings row exists (initial DB seed)
         result = conn.execute("""
-        INSERT OR IGNORE INTO settings (id, tuya_url, tuya_client_id, tuya_client_secret, influx_url, influx_token, influx_org, influx_bucket, log_level)
-        VALUES (1, 'https://openapi.tuyaeu.com', '', '', '', '', '', '', 'INFO')
+        INSERT OR IGNORE INTO settings (id, tuya_url, tuya_client_id, tuya_client_secret, influx_url, influx_token, influx_org, influx_bucket, log_level, update_interval)
+        VALUES (1, 'https://openapi.tuyaeu.com', '', '', '', '', '', '', 'INFO', 3600)
         """)
         if result.rowcount > 0:
             logger.info("Initial settings row seeded into database.")
@@ -207,8 +218,11 @@ class TuyaClient:
         path = f"/v1.0/devices/{device_id}"
         headers = self._get_headers(path, access_token=token)
         
+        start_time = time.time()
         try:
             resp = requests.get(f"{self.url}{path}", headers=headers, timeout=10)
+            duration_ms = int((time.time() - start_time) * 1000)
+            logger.debug(f"Tuya API request for device {device_id} completed in {duration_ms}ms")
             resp.raise_for_status()
             data = resp.json()
             if data.get("success"):
@@ -216,7 +230,8 @@ class TuyaClient:
             else:
                 raise Exception(data.get("msg", "Unknown error"))
         except Exception as e:
-            logger.error(f"Failed to fetch device details for ID {device_id}: {e}")
+            duration_ms = int((time.time() - start_time) * 1000)
+            logger.error(f"Tuya API request for device {device_id} failed after {duration_ms}ms: {e}")
             raise e
 
 # -------------------------------------------------------------
@@ -274,6 +289,7 @@ def write_to_influx(settings, device_id, device_name, product_name, location, on
         logger.warning(f"InfluxDB settings are incomplete. Skipping metric write for {device_id}.")
         return
         
+    start_time = time.time()
     try:
         with InfluxDBClient(url=url, token=token, org=org, timeout=10000) as client:
             write_api = client.write_api(write_options=SYNCHRONOUS)
@@ -296,9 +312,11 @@ def write_to_influx(settings, device_id, device_name, product_name, location, on
                     point = point.field("battery_state", str(battery))
                     
             write_api.write(bucket=bucket, org=org, record=point)
-            logger.info(f"Successfully published metrics for device {device_id} to InfluxDB.")
+            duration_ms = int((time.time() - start_time) * 1000)
+            logger.debug(f"Successfully published metrics for device {device_id} to InfluxDB in {duration_ms}ms.")
     except Exception as e:
-        logger.error(f"Failed to publish metrics to InfluxDB for device {device_id}: {e}")
+        duration_ms = int((time.time() - start_time) * 1000)
+        logger.error(f"Failed to publish metrics to InfluxDB for device {device_id} after {duration_ms}ms: {e}")
         raise e
 
 # -------------------------------------------------------------
@@ -308,6 +326,7 @@ db_lock = threading.Lock()
 
 def run_collection(device_id=None):
     logger.info("Executing collection task...")
+    cycle_start = time.time()
     with db_lock:
         conn = get_db_connection()
         try:
@@ -315,6 +334,7 @@ def run_collection(device_id=None):
             if not settings:
                 logger.error("Database settings record not found. Aborting collection.")
                 return
+            logger.debug("Database settings loaded successfully.")
 
             if not settings["tuya_client_id"] or not settings["tuya_client_secret"]:
                 logger.warning("Tuya Client ID or Secret is not configured. Skipping collection task.")
@@ -322,8 +342,10 @@ def run_collection(device_id=None):
 
             if device_id:
                 devices = conn.execute("SELECT * FROM devices WHERE id = ?", (device_id,)).fetchall()
+                logger.debug(f"Loaded device ID {device_id} from DB (found: {len(devices) > 0}).")
             else:
                 devices = conn.execute("SELECT * FROM devices").fetchall()
+                logger.debug(f"Loaded {len(devices)} devices from DB.")
 
             if not devices:
                 logger.info("No devices registered in database. Collection skipped.")
@@ -348,7 +370,17 @@ def run_collection(device_id=None):
                     online = 1 if data.get("online", True) else 0
                     status_list = data.get("status", [])
                     
+                    logger.debug(f"Raw status list for device {dev_id}: {status_list}")
+                    
                     temp, hum, battery = parse_status(product_name, status_list)
+                    logger.debug(f"Parsed metrics for device {dev_id}: temperature={temp}°C, humidity={hum}%, battery={battery}")
+                    
+                    # State transition detection
+                    old_online = dev["online"]
+                    if old_online is not None and old_online != online:
+                        status_str = "ONLINE" if online == 1 else "OFFLINE"
+                        logger.info(f"Device {dev_id} ({location}) transitioned from {'ONLINE' if old_online == 1 else 'OFFLINE'} to {status_str}")
+                    
                     last_seen = time.strftime('%Y-%m-%d %H:%M:%S')
                     
                     # Update local cache in DB
@@ -358,6 +390,7 @@ def run_collection(device_id=None):
                         WHERE id = ?
                     """, (name, product_name, online, temp, hum, battery, last_seen, dev_id))
                     conn.commit()
+                    logger.debug(f"Updated local database cache for device {dev_id}.")
                     
                     # Write to InfluxDB
                     write_to_influx(settings, dev_id, name, product_name, location, online, temp, hum, battery)
@@ -365,45 +398,96 @@ def run_collection(device_id=None):
                 except Exception as e:
                     err_msg = str(e)
                     logger.error(f"Error querying device {dev_id}: {err_msg}")
+                    
+                    # State transition check on error (transitions to offline if it was online)
+                    old_online = dev["online"]
+                    if old_online is not None and old_online != 0:
+                        logger.info(f"Device {dev_id} ({location}) transitioned from ONLINE to OFFLINE due to query error")
+                        
                     conn.execute("""
                         UPDATE devices
                         SET last_error = ?, online = 0
                         WHERE id = ?
                     """, (err_msg, dev_id))
                     conn.commit()
+                    logger.debug(f"Logged query error to DB for device {dev_id}.")
         finally:
             conn.close()
+    
+    duration_ms = int((time.time() - cycle_start) * 1000)
+    logger.info(f"Collection cycle execution took {duration_ms}ms")
 
 # -------------------------------------------------------------
 # Background Scheduler
 # -------------------------------------------------------------
 shutdown_event = threading.Event()
+settings_changed_event = threading.Event()
 
-COLLECTION_INTERVAL_SECONDS = int(os.environ.get("COLLECTION_INTERVAL", "3600"))
+def get_current_interval():
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT update_interval FROM settings WHERE id = 1").fetchone()
+        logger.debug("Database settings loaded for interval check.")
+        if row and row["update_interval"] is not None:
+            return int(row["update_interval"])
+    except Exception as e:
+        logger.debug(f"Error reading interval from DB: {e}")
+    finally:
+        conn.close()
+        
+    return int(os.environ.get("COLLECTION_INTERVAL", "3600"))
 
 def scheduler_worker():
     logger.info("Background scheduler thread initialized.")
-    logger.info(f"Collection interval: {COLLECTION_INTERVAL_SECONDS}s. Running initial sync in 5s...")
-    time.sleep(5)
+    initial_interval = get_current_interval()
+    logger.info(f"Collection interval: {initial_interval}s. Running initial sync in 5s...")
+    
+    # Startup delay: wait 5s, checking for shutdown
+    if shutdown_event.wait(5):
+        logger.info("Shutdown signal received before first run. Exiting scheduler.")
+        return
 
     while not shutdown_event.is_set():
+        settings_changed_event.clear()
+        logger.info(f"Scheduler cycle started at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        cycle_start = time.time()
         try:
             run_collection()
         except Exception as e:
             logger.error(f"Unhandled error in scheduler execution cycle: {e}")
-
-        logger.info(f"Next collection scheduled in {COLLECTION_INTERVAL_SECONDS}s.")
-        # Poll shutdown event in short intervals to allow clean exit
-        for _ in range(COLLECTION_INTERVAL_SECONDS):
-            if shutdown_event.is_set():
-                logger.info("Shutdown signal received. Exiting scheduler.")
+            
+        cycle_duration = int((time.time() - cycle_start) * 1000)
+        logger.info(f"Scheduler cycle completed. Duration: {cycle_duration}ms.")
+        
+        interval = get_current_interval()
+        logger.info(f"Next collection scheduled in {interval}s.")
+        
+        # Wait up to `interval` seconds, wake up immediately on shutdown_event or settings_changed_event
+        start_time = time.time()
+        while not shutdown_event.is_set():
+            elapsed = time.time() - start_time
+            remaining = interval - elapsed
+            if remaining <= 0:
                 break
-            time.sleep(1)
+            
+            wait_time = min(remaining, 1.0)
+            if settings_changed_event.wait(wait_time):
+                settings_changed_event.clear()
+                old_interval = interval
+                interval = get_current_interval()
+                logger.info(f"Update interval changed from {old_interval}s to {interval}s. Adjusting schedule.")
+                if (time.time() - start_time) >= interval:
+                    break
 
 # -------------------------------------------------------------
 # Flask Web App Setup & Endpoints
 # -------------------------------------------------------------
 app = Flask(__name__)
+
+@app.after_request
+def log_request_info(response):
+    logger.debug(f"HTTP {request.method} {request.path} - {response.status_code}")
+    return response
 
 # Bootstrap: run regardless of whether app is started via __main__ or
 # imported by a WSGI server (Gunicorn). This ensures the DB tables always
@@ -435,6 +519,7 @@ def get_settings():
     conn = get_db_connection()
     try:
         row = conn.execute("SELECT * FROM settings WHERE id = 1").fetchone()
+        logger.debug("Database settings loaded for GET settings.")
         return jsonify(dict(row) if row else {})
     finally:
         conn.close()
@@ -453,7 +538,8 @@ def update_settings():
                 influx_token = ?,
                 influx_org = ?,
                 influx_bucket = ?,
-                log_level = ?
+                log_level = ?,
+                update_interval = ?
             WHERE id = 1
         """, (
             data.get("tuya_url", "https://openapi.tuyaeu.com"),
@@ -463,14 +549,19 @@ def update_settings():
             data.get("influx_token", ""),
             data.get("influx_org", ""),
             data.get("influx_bucket", ""),
-            data.get("log_level", "INFO")
+            data.get("log_level", "INFO"),
+            int(data.get("update_interval", 3600))
         ))
         conn.commit()
+        logger.debug("Database settings updated successfully.")
     finally:
         conn.close()
         
     # Dynamically apply updated logger setting
     apply_log_level_from_db()
+    
+    # Signal the scheduler that settings have changed
+    settings_changed_event.set()
     return jsonify({"success": True, "message": "Settings saved successfully"})
 
 @app.route("/api/devices", methods=["GET"])
@@ -478,6 +569,7 @@ def get_devices():
     conn = get_db_connection()
     try:
         rows = conn.execute("SELECT * FROM devices").fetchall()
+        logger.debug(f"Loaded {len(rows)} devices for GET devices.")
         return jsonify([dict(r) for r in rows])
     finally:
         conn.close()
@@ -495,11 +587,13 @@ def add_device():
     try:
         # Check duplicate
         exists = conn.execute("SELECT 1 FROM devices WHERE id = ?", (dev_id,)).fetchone()
+        logger.debug(f"Checked duplicate for new device {dev_id} (exists: {bool(exists)}).")
         if exists:
             return jsonify({"success": False, "message": f"Device {dev_id} is already registered"}), 400
 
         conn.execute("INSERT INTO devices (id, location, online) VALUES (?, ?, 0)", (dev_id, location))
         conn.commit()
+        logger.debug(f"Inserted new device {dev_id} into DB.")
     finally:
         conn.close()
 
@@ -515,6 +609,7 @@ def delete_device(device_id):
     try:
         conn.execute("DELETE FROM devices WHERE id = ?", (device_id,))
         conn.commit()
+        logger.debug(f"Deleted device {device_id} from DB.")
         return jsonify({"success": True, "message": "Device deleted successfully"})
     finally:
         conn.close()
